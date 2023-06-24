@@ -1,5 +1,11 @@
 extends layout
 
 block content
-    div(class="content px-4")
-      p Welcome to #{title}
+    div.content.px-4
+      each que in questions
+        div.card.border-primary.mb-3(style='max-width: 18rem;')
+          div.card-header.text-truncate #{que.QU_QUESTION}
+          div.card-body.text-primary
+            //- h5.card-title.text-truncate #{que.QU_ANSWER}
+            span.card-text.multiline-text-truncate
+              | #{que.QU_PASSAGE}
