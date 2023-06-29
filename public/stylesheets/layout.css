@@ -124,7 +124,7 @@ a, .btn-link {
             color: white;
         }
 
-@media (max-width: 640.98px) {
+@media (max-width: 500px) {
     .top-row:not(.auth) {
         display: none;
     }
@@ -138,7 +138,7 @@ a, .btn-link {
     }
 }
 
-@media (min-width: 641px) {
+@media (min-width: 300px) {
     .page {
         flex-direction: row;
     }
