@@ -1,0 +1,19 @@
+extends layout
+
+block head
+  script(src="/javascripts/code.jquery.com_jquery-3.7.0.min.js")
+  script(src="/jquery/corrections_page.ui.js")
+block content
+  form#corrections_page(action="problem_editor_page", method="post") 
+    div.content.px-4
+      div.row
+        div.col-6(style="border-style:solid")
+          div.question-content
+            div.question-title
+              span Passage
+            textarea#error.passage-text(name="error", autofocus="", style="width:100%;", placeholder="Type of paste text to see ideas for improvement.")
+        div.col-6(style="border-style:solid")
+          div.question-content
+            div.question-title
+              span Question type
+            textarea#correct.passage-text(name="correct", autofocus="", style="width:100%;")

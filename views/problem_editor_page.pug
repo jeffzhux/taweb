@@ -2,9 +2,10 @@ extends layout
 
 block head
   link(rel='stylesheet', href='/stylesheets/problem_editor_page.css')
-
+  script(src="/javascripts/code.jquery.com_jquery-3.7.0.min.js")
+  script(src="/jquery/problem_editor_page.ui.js")
 block content
-  form(action="./problem_editor_page/generate", method="post") 
+  form#problem_editor_page(action="problem_editor_page", method="post") 
     div.content.px-4
       div.row
         div.col-8.question-border(style="border-style:solid")
@@ -21,4 +22,12 @@ block content
                 select.form-select(name="questionType")
                   option(value='1') Open question
                 label(for="questionType") Question type
-                input.btn.btn-outline-primary(type="submit", text="Generate") 
+                input#generate.btn.btn-outline-primary(type="button", value="Generate")
+    
+      div.row
+          div.col-12
+            h2 Q1
+            div.question
+              span#question question
+            div.answer
+              span#answer answer
