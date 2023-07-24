@@ -23,13 +23,4 @@ module.exports = class QuestionAnswerModel {
         return {question: '', answer: ''};
       }
     }
-
-
-    // async garmmar_correction(text){
-    //   const { pipeline, env } = await import('@xenova/transformers');
-    //   env.cacheDir = 'F:\\NLP\\taweb\\public\\.cache'
-    //   let pipe = await pipeline('text2text-generation', 'correction_model')
-    //   let correct_text = await pipe(text);
-    //   return {text: correct_text}
-    // }
   }

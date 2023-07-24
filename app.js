@@ -3,15 +3,41 @@ var express = require('express');
 var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
+var http = require('https');
+var fs = require('fs');
+var app = express();
 
-var db = require('./models/dbconnect')
+// io connect
+const port = process.env.PORT || 8080;
+var server = http.createServer({
+  key: fs.readFileSync('./public/sslca/key.pem'),
+  cert: fs.readFileSync('./public/sslca/cert.pem')
+}, app);
+server.listen(port, function() {
+  console.log(`Listening on port ${port}`);
+});
+const io = require('socket.io')(server, {
+  cors:{
+    origin : 'https://localhost:8080',
+    methods: ['GET', 'POST']
+  }
+});
+const socketController = require('./controllers/socketController')(io);
+// io.on('connection', function(socket) {
+//   console.log('A user connected');
+
+//   socket.on('disconnect', function() {
+//       console.log('A user disconnected');
+//   });
+
+//   socket.on('chat message', function(msg) {
+//       io.emit('chat message', msg);
+//   });
+// });
+
+// Load MVC routes
 var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
-
-var app = express();
-// app.listen(process.env.PORT, () =>{
-//   db.connect();
-// })
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));

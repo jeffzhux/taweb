@@ -16,6 +16,7 @@ module.exports = class CorrectionsModel {
     }
     static async garmmar_correction(text){
         await this._init();
+        console.log(text)
         if(this.is_initializing == false){
             let correct_text = await this.pipe(text);
             return {text: correct_text[0]};

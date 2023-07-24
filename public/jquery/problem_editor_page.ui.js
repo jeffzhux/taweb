@@ -22,18 +22,23 @@
         _init: function(){
             $('#problem_editor_page').on('click', '#generate', async function(){
                 const formdata = {};
-                $('#problem_editor_page').serializeArray().map(x => {formdata[x.name]=x.value;});
+                formdata["passage"] = $("#passage").val();
+                formdata["questionType"] = $("#questionType").data('value');
+
                 const request ={method:'post', body: JSON.stringify(formdata)}
                 const response = await $.ui._api('problem_editor_page/generate', request);
                 console.log(response);
                 $('#question').text(response['question']);
                 $('#answer').text(response['answer']);
+            }),
+            $('.dropdown-menu').on('click', '.dropdown-item', function(){
+                $('#questionType').html($(this).html());
+                $('#questionType').data('value', $(this).data('value'));
             })
-        }
+        },
         
     });
     $(function(){
-        
         $.ui._init();
     })
 }(window, document, jQuery))

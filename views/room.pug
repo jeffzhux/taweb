@@ -1,0 +1,27 @@
+extends layout
+block head
+    link(rel='stylesheet', href='/stylesheets/room.css')
+    script(src="/socket.io/socket.io.js")
+    script(src="/jquery/zoom.ui.js")
+
+block content
+    div.main
+        div.main__left
+            div.videos__group
+                div#video-grid
+            div.options
+                div.options__left
+                    div#stopVideo.options__button
+                        i.fa.fa-video-camera 
+                    div#muteButton.options__button
+                        i.fa.fa-microphone 
+                div.options__fight
+                    div#inviteButton.options__button
+                        i.fas.fa-user-plus
+        div.main__right.bg-opacity-25
+            div.main__chat_window
+                div.messages
+            div.main__message_container
+                input#chat_message(type="text", autocomplete="off", placeholder="Type message here...")
+                div#send.options__button
+                    i.fa.fa-plus(aria-hidden="true")

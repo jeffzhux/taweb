@@ -21,10 +21,10 @@
         },
         _init: function(){
             $('#corrections_page').on('keyup', '#error', async function(){
-                const obj = {text:$("#error").val()};
+                const obj = {text:$("#error").text()};
                 const request ={method:'post', body: JSON.stringify(obj)}
                 const response = await $.ui._api('corrections_page/correct', request);
-                $("#correct").val(response['text'])
+                $("#correct").text(response['text'])
                 console.log(response);
             })
         }

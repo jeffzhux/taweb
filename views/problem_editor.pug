@@ -1,30 +1,42 @@
 extends layout
 
 block head
-  link(rel='stylesheet', href='/stylesheets/components.css')
+  link(rel='stylesheet', href='/stylesheets/problem_editor.css')
 
 block content
-    div.content.px-4
-      div.d-flex.py-1
-        a.btn.btn-outline-info.ml-auto(href='/problem_editor_page')
-          span.oi.oi-plus.align-bottom
-          | Add
-      div.row.row-cols-3
-          each que in questions
-            div.flip-card.col
-              div.flip-card-inner
-                div.flip-card-front
-                  div.card.border-primary(style='min-height:199px;')
-                    div.card-header.text-truncate #{que.QU_QUESTION}
-                    div.card-body.text-primary
-                      h5.card-title.text-truncate Passage
-                      span.card-text.multiline-text-truncate
-                        | #{que.QU_PASSAGE}
-                div.flip-card-back
-                  div.card.border-primary.mb-3(style='min-height:199px;')
-                    div.card-header.text-truncate #{que.QU_QUESTION}
-                    div.card-body.text-primary
-                      h5.card-title.text-truncate Answer
-                      span.card-text.multiline-text-truncate
-                        | #{que.QU_ANSWER}
+    div.bg-4.px-4
+      div.main-container
+        div.row.pt-5.pb-5
+          div.col-3.left-sidebar
+            div.d-flex.py-1
+              a.btn.btn-outline.ml-auto(href='/problem_editor_page')
+                span.oi.oi-plus
+                | &nbsp; Add
 
+          div.col-9
+            div.right-content
+              div.row.row-cols-3
+                each que in questions
+                  div.col
+                    div.card.mb-3(style="max-width:18rem")
+                      div.card-header.bg-1.text-white.text-truncate #{que.QU_QUESTION}
+                      div.card-body
+                        h5.card-title.text-truncate #{que.QU_ANSWER}
+                        p.card-text.multiline-text-truncate.text-justify #{que.QU_PASSAGE}
+                  //- div.flip-card
+                  //-   div.flip-card-inner
+                  //-     div.flip-card-front
+                  //-       div.card.border-primary(style='min-height:199px;')
+                  //-         div.card-header.text-truncate #{que.QU_QUESTION}
+                  //-         div.card-body.text-primary
+                  //-           h5.card-title.text-truncate Passage
+                  //-           span.card-text.multiline-text-truncate
+                  //-             | #{que.QU_PASSAGE}
+                  //-     div.flip-card-back
+                  //-       div.card.border-primary.mb-3(style='min-height:199px;')
+                  //-         div.card-header.text-truncate #{que.QU_QUESTION}
+                  //-         div.card-body.text-primary
+                  //-           h5.card-title.text-truncate Answer
+                  //-           span.card-text.multiline-text-truncate
+                  //-             | #{que.QU_ANSWER}
+      

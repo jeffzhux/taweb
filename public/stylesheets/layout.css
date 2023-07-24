@@ -1,128 +1,118 @@
 ﻿html, body {
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-family: 'Open Sans', sans-serif;
+    font-size: normal;
+    font-weight: 600;
+    font-stretch: 100%;
+    font-size: 20px;
+    background-color: var(--color5);
 }
-
-a, .btn-link {
-    color: #0366d6;
-}
-
-.btn-primary {
-    color: #fff;
-    background-color: #1b6ec2;
-    border-color: #1861ac;
-}
-
-.content {
-    padding-top: 1.1rem;
-}
-
-.up_page {
-    display:flex;
-    justify-content: space-between;
-}
-
-.valid.modified:not([type=checkbox]) {
-    outline: 1px solid #26b050;
-}
-
-.invalid {
-    outline: 1px solid red;
-}
-
-.validation-message {
-    color: red;
-}
-
-#blazor-error-ui {
-    background: lightyellow;
-    bottom: 0;
-    box-shadow: 0 -1px 2px rgba(0, 0, 0, 0.2);
-    display: none;
-    left: 0;
-    padding: 0.6rem 1.25rem 0.7rem 1.25rem;
-    position: fixed;
-    width: 100%;
-    z-index: 1000;
-}
-
-    #blazor-error-ui .dismiss {
-        cursor: pointer;
-        position: absolute;
-        right: 0.75rem;
-        top: 0.5rem;
-    }
-
-.page {
-    position: relative;
+body{
+    min-height:100vh;
     display: flex;
+    flex-direction: column;
+}
+main{
+}
+.footer{
+    margin-top:auto;
+}
+a{
+    cursor: pointer;
+}
+.mean-link{
+    color:var(--color3);
+    padding-right: 20px;
+    padding-left: 20px;
+}
+.mean-link:hover{
+    color:var(--color1);
+}
+.mean-link.active{
+    color:var(--color1);
+}
+.main-container{
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 20px;
+    padding-right: 20px;
 }
 
-.main {
-    flex: 1;
+.btn-outline{
+    background-color: var(--color1);
+    color: var(--color5);
+}
+  
+.btn-outline:hover{
+    background-color: var(--color0);
+    color: var(--color5);
+}
+.btn-outline:active{
+    background-color: var(--color0);
+    color: var(--color5);
+}
+.text-0{
+    color: var(--color0);
+}
+.text-1{
+    color: var(--color1);
+}
+.text-2{
+    color: var(--color2);
+}
+.text-3{
+    color: var(--color3);
+}
+.text-4{
+    color: var(--color4);
+}
+.text-5{
+    color: var(--color5);
+}
+.text-6{
+    color: var(--color6);
+}
+.bg-0{
+    background-color: var(--color0);
+}
+.bg-1{
+    background-color: var(--color1);
+}
+.bg-2{
+    background-color: var(--color2);
+}
+.bg-3{
+    background-color: var(--color3);
+}
+.bg-4{
+    background-color: var(--color4);
+}
+.bg-5{
+    background-color: var(--color5);
+}
+.bg-6{
+    background-color: var(--color6);
+}
+.bg-7{
+    background-color: var(--color7);
+}
+.bg-8{
+    background-color: var(--color8);
+}
+:root{
+    --color0: #8bc34a;
+    --color1: #6a9739;
+    --color2: #111111;
+    --color3: #333333;
+    --color4: #f8f6f3;
+    --color5: #ffffff;
+    --color6: #001524;
+    --color7: #424242;
+    --color8: #000000;
 }
 
-.sidebar {
-    background-image: linear-gradient(180deg, rgb(5, 39, 103) 0%, #3a0647 70%);
+[contenteditable]:focus {
+    outline: 0px solid transparent;
 }
-
-.top-row {
-    background-color: rgba(0,0,0,0.4);
-    border-bottom: 1px solid #d6d5d5;
-    height: 3.5rem;
-    display: flex;
-    align-items: center;
-    font-size:xx-large;
-    color:#ffffff;
-}
-
-
-
-.navbar-toggler {
-    background-color: rgba(255, 255, 255, 0.1);
-}
-
-.navbar-brand {
-    font-size: 1.1rem;
-}
-
-.oi {
-    width: 2rem;
-    font-size: 1.1rem;
-    vertical-align: text-top;
-    top: -2px;
-}
-
-.nav-item {
-    font-size: 0.9rem;
-    padding-bottom: 0.5rem;
-}
-
-    .nav-item:first-of-type {
-        padding-top: 1rem;
-    }
-
-    .nav-item:last-of-type {
-        padding-bottom: 1rem;
-    }
-
-    .nav-item a {
-        color: #d7d7d7;
-        border-radius: 4px;
-        height: 3rem;
-        display: flex;
-        align-items: center;
-        line-height: 3rem;
-    }
-
-        .nav-item a.active {
-            background-color: rgba(255,255,255,0.25);
-            color: white;
-        }
-
-        .nav-item a:hover {
-            background-color: rgba(255,255,255,0.1);
-            color: white;
-        }
 
 @media (max-width: 500px) {
     .top-row:not(.auth) {
@@ -155,12 +145,12 @@ a, .btn-link {
         top: 0;
         z-index: 1;
     }
-
+    /*
     .main > div {
         padding-left: 2rem !important;
         padding-right: 1.5rem !important;
     }
-
+    */
     .navbar-toggler {
         display: none;
     }

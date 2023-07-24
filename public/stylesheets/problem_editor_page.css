@@ -1,3 +1,8 @@
+
+.dropdown-item:active{
+    background-color: var(--color1);
+}
+
 .question-border{
     border-end-start-radius:15px;
     border-start-start-radius: 15px;

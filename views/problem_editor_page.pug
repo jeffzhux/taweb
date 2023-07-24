@@ -2,32 +2,56 @@ extends layout
 
 block head
   link(rel='stylesheet', href='/stylesheets/problem_editor_page.css')
-  script(src="/javascripts/code.jquery.com_jquery-3.7.0.min.js")
   script(src="/jquery/problem_editor_page.ui.js")
 block content
-  form#problem_editor_page(action="problem_editor_page", method="post") 
+  div#problem_editor_page.bg-4.pt-4.pb-4
     div.content.px-4
       div.row
-        div.col-8.question-border(style="border-style:solid")
-          div.question-content
-            div.question-title
-              span Passage
-            textarea.passage-text(name="passage", autofocus="", placeholder="Enter a paragraph to generate questions from...")
-        div.col-4(style="border-style:solid")
-          div.question-content
-            div.question-title
-              span Question type
-            div.row
-              div.form-floating
-                select.form-select(name="questionType")
-                  option(value='1') Open question
-                label(for="questionType") Question type
-                input#generate.btn.btn-outline-primary(type="button", value="Generate")
-    
-      div.row
-          div.col-12
-            h2 Q1
-            div.question
-              span#question question
-            div.answer
-              span#answer answer
+        div.col-8.question-border
+          div.card.card-body.shadow.p-4.question-content
+            label.form-label(for="passage") Passage 
+            textarea#passage.passage-text(name="passage", autofocus="", placeholder="Enter a paragraph to generate questions from...")
+          //- div.question-content
+          //-   div.question-title
+          //-     span Passage
+          //-   textarea.passage-text(name="passage", autofocus="", placeholder="Enter a paragraph to generate questions from...")
+        div.col-4
+          div.card.card-body.shadow.p-4
+            div.row.g-3.mt-0
+              div.col-12
+                label.form-label.fs-6(for="question_type") Question type 
+                div.dropdown
+                  button#questionType.btn.border.form-select.text-start(type='button', data-value='1', data-bs-toggle='dropdown', aria-expanded='false')
+                    span.fas.fa-comments.text-0
+                    | &nbsp; Open question
+                  ul.dropdown-menu(style="width:95%")
+                    li
+                      div.dropdown-item(data-value='1')
+                        span.fas.fa-comments.text-0
+                        | &nbsp; Open question
+                    li
+                      div.dropdown-item(data-value='2')
+                        span.fas.fa-lg.fa-table.text-0
+                        | &nbsp; Multiple choice
+              div.col-12
+                buttom#generate.btn.btn-outline(type="button")
+                  span.fas.fa-bolt
+                  | Generate
+
+          div.card.card-body.shadow.p-4.mt-4
+            div.row.g-3.mt-0
+              div.col-12
+                label.form-label(for="question_type") Question
+                p#question.fw-light(name="question_type") question
+              div.col-12
+                label.form-label(for="question_type") Answer
+                p#answer.fw-light(name="question_type") answer
+          //- div.question-content
+          //-   div.question-title
+          //-     span Question type
+          //-   div.row
+          //-     div.form-floating
+          //-       select.form-select(name="questionType")
+          //-         option(value='1') Open question
+          //-       label(for="questionType") Question type
+          //-       input#generate.btn.btn-outline-primary(type="button", value="Generate")

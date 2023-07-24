@@ -1,38 +1,68 @@
-doctype html
 html
   head
     title= title
     //- link(rel='stylesheet', href='/stylesheets/style.css')
     //- <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM" crossorigin="anonymous">
-    link(rel='stylesheet', href='/stylesheets/bootstrap/bootstrap.min.css')
+    link(rel='stylesheet', href='/stylesheets/bootstrap/css/bootstrap.min.css')
+    script(src='/stylesheets/bootstrap/js/bootstrap.bundle.min.js')
+    script(src="/javascripts/code.jquery.com_jquery-3.7.0.min.js")
     link(rel='stylesheet', href='/stylesheets/open-iconic/font/css/open-iconic-bootstrap.min.css')
     link(rel='stylesheet', href='/stylesheets/layout.css')
     link(rel='stylesheet', href='/stylesheets/helpers.css')
+    link(rel='stylesheet', href='/stylesheets/fontawesome6.4.0/css/fontawesome.css')
+    link(rel='stylesheet', href='/stylesheets/fontawesome6.4.0/css/solid.css')
     block head
-  body
-    div(class="page")
-      div(class="sidebar")
-        div(class="top-row pl-4 navbar navbar-dark")
-          a(class="navbar-brand", href="#")
-            | 智慧評分
+  body.bg-4
+    //- div(class="page")
+    //-   div(class="sidebar")
+    //-     div(class="top-row pl-4 navbar navbar-dark")
+    //-       a(class="navbar-brand", href="#")
+    //-         | 智慧評分
     
-        div
-          ul(class="nav flex-column")
-            li(class="nav-item px-3")
-              a(class="nav-link", href="../problem_editor")
-                span(class="oi oi-document")
-                | Problem Editor
-            li(class="nav-item px-3")
-              a(class="nav-link", href="../corrections_page")
-                span(class="oi oi-eye") 
-                | Corrections
+    //-     div
+    //-       ul(class="nav flex-column")
+    //-         li(class="nav-item px-3")
+    //-           a(class="nav-link", href="../problem_editor")
+    //-             span(class="oi oi-document")
+    //-             | Problem Editor
+    //-         li(class="nav-item px-3")
+    //-           a(class="nav-link", href="../corrections_page")
+    //-             span(class="oi oi-eye") 
+    //-             | Corrections
 
-      div(class="main")
-        div(class="top-row px-4 justify-content-between")
-          div
-            span= title
-          div
-            span Hi~
-            a(class="btn btn-link")
-        
-        block content
+    //-   div(class="main")
+    //-     div(class="top-row px-4 justify-content-between")
+    //-       div
+    //-         span= title
+    //-       div
+    //-         span Hi~
+    //-         a(class="btn btn-link")
+    header.p-3.bg-5
+      div.container
+        div.d-flex.align-items-center.justify-content-center.justify-content-lg-start
+
+          ul.nav.col-12.col-lg-auto.me-lg-auto.mb-2.justify-content-center.mb-md-0
+            li
+              if title == "Problems"
+                a.nav-link.mean-link.active(href="../problem_editor") Problems
+              else
+                a.nav-link.mean-link(href="../problem_editor") Problems
+            li 
+              if title == "Corrections"
+                a.nav-link.mean-link.active(href="../corrections_page") Corrections
+              else
+                a.nav-link.mean-link(href="../corrections_page") Corrections
+
+            li 
+              if title == "Room"
+                a.nav-link.mean-link.active(href="../room") Room 
+              else 
+                a.nav-link.mean-link(href="../room") Room
+              
+          div.col-12.col-lg-auto.mb-3.mb-lg-0.me-lg-3
+            | #{title}
+    main(role="main")
+      block content
+
+    footer.footer.bg-2.py-xl-5
+      div.container.pt-5.pb-2

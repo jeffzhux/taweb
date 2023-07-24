@@ -4,16 +4,27 @@ block head
   script(src="/javascripts/code.jquery.com_jquery-3.7.0.min.js")
   script(src="/jquery/corrections_page.ui.js")
 block content
-  form#corrections_page(action="problem_editor_page", method="post") 
+  div#corrections_page.bg-4.pt-4.pb-4
     div.content.px-4
-      div.row
-        div.col-6(style="border-style:solid")
-          div.question-content
-            div.question-title
-              span Passage
-            textarea#error.passage-text(name="error", autofocus="", style="width:100%;", placeholder="Type of paste text to see ideas for improvement.")
-        div.col-6(style="border-style:solid")
-          div.question-content
-            div.question-title
-              span Question type
-            textarea#correct.passage-text(name="correct", autofocus="", style="width:100%;")
+      div.card.card-body.shadow.p-4
+        div.row.g-0
+          div.col-6.border.p-2
+            div#error.passage-text(name='error', style="width:100%;height:150px;", contenteditable="true")
+            //- textarea#error.passage-text(name="error", autofocus="", style="width:100%;", placeholder="Type of paste text to see ideas for improvement.")
+          div.col-6.border.p-2
+            div#correct.passage-text(name="correct", style="width:100%;")
+              
+            //- textarea#correct.passage-text(name="correct", autofocus="", style="width:100%;")    
+  //- form#corrections_page(action="problem_editor_page", method="post") 
+  //-   div.content.px-4
+  //-     div.row
+  //-       div.col-6(style="border-style:solid")
+  //-         div.question-content
+  //-           div.question-title
+  //-             span Passage
+  //-           textarea#error.passage-text(name="error", autofocus="", style="width:100%;", placeholder="Type of paste text to see ideas for improvement.")
+  //-       div.col-6(style="border-style:solid")
+  //-         div.question-content
+  //-           div.question-title
+  //-             span Question type
+  //-           textarea#correct.passage-text(name="correct", autofocus="", style="width:100%;")
