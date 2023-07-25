@@ -1,4 +1,7 @@
+import vision from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0";
+const { FaceLandmarker, FilesetResolver, DrawingUtils } = vision;
 (function (window, document, $, undefined){
+    
     $.extend({ui:{}, var:{}});
     $.extend($.var,{
         constrains:{
@@ -13,8 +16,15 @@
         localVideo: null,
         localStream: null,
         remoteVideo: null,
+        remoteCanvas: null,
         pc: null,
-        offer: null
+        offer: null,
+        faceLandmarker:null,
+        leftEyeIdx:[362, 385, 387, 263, 373, 380],
+        rightEyeIdx:[33, 160, 158, 133, 153, 144],
+        EYE_AR_THRESH: 0.35,
+        EYE_AR_CONSEC_FRAMES: 48,
+        EYE_AR_COUNTER:0,
     })
     $.extend($.ui, {
         _api:async function(url, request){
@@ -63,7 +73,9 @@
             $.var.localVideo.srcObject = $.var.localStream;
             $.var.localVideo.addEventListener("loadedmetadata", () => {
                 $.var.localVideo.play();
-                videoGrid.append($.var.localVideo);
+                const div = document.createElement("div");
+                div.append($.var.localVideo);
+                videoGrid.append(div);
             });
             console.log($.var.localStream.getVideoTracks()[0].label);
             console.log($.var.localStream.getAudioTracks()[0].label);
@@ -103,19 +115,26 @@
             };
         },
 
-        onAddStream: function() {
-            // 監聽是否有流傳入，如果有的話就顯示影像
-            console.log('onAddStream()');
-            
+        onAddStream:async function() {
+            // 監聽是否有流傳入，如果有的話就顯示影像            
             $.var.pc.onaddstream = (event) => {
-                console.log(event);
                 const videoGrid = document.getElementById("video-grid");
+                const div = document.createElement("div");
+                div.style.display="flex";
+                $.var.remoteCanvas = document.createElement("canvas");
+                $.var.remoteCanvas.style.position = 'absolute';
                 $.var.remoteVideo = document.createElement("video");
                 if(!$.var.remoteVideo.srcObject && event.stream){
                     $.var.remoteVideo.srcObject = event.stream;
                     $.var.remoteVideo.play();
-                    videoGrid.append($.var.remoteVideo);
+                    
+                    div.append($.var.remoteVideo);
+                    div.append($.var.remoteCanvas);
+
+                    videoGrid.append(div);
+                    $.var.remoteVideo.addEventListener("loadeddata", $.ui.predictWebcam);
                     console.log('接收流並顯示於遠端視訊！', event);
+                    
                 }
             }
         },
@@ -173,18 +192,80 @@
             console.log("joinRoom");
             $.var.socket.emit('joinRoom' , 'secret room');
         },
+        _initModel: async function(){
+            const filesetResolver = await FilesetResolver.forVisionTasks(
+                "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0/wasm"
+            );
+            $.var.faceLandmarker = await FaceLandmarker.createFromOptions(filesetResolver, {
+                baseOptions: {
+                  modelAssetPath: `https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task`,
+                  delegate: "CPU"
+                },
+                outputFaceBlendshapes: true,
+                runningMode:"VIDEO",
+                numFaces: 1
+            });
+        },
+        EAR: function(p){
+            const euclideanDistance = (a, b) => Math.hypot(...Object.keys(a).map(k => b[k]-a[k]));
+            return (euclideanDistance(p[1], p[5]) + euclideanDistance(p[2], p[4])) / (2*euclideanDistance(p[0], p[3]));
+        },
+        predictWebcam: async function(){
+            if($.var.remoteVideo){
+                const results = $.var.faceLandmarker.detectForVideo($.var.remoteVideo, Date.now());
+                const leftP = []
+                const rightP = []
+                try{
+                    for(let i = 0; i < $.var.leftEyeIdx.length; i++){
+                        leftP.push(results.faceLandmarks[0][$.var.leftEyeIdx[i]]);
+                        rightP.push(results.faceLandmarks[0][$.var.rightEyeIdx[i]]);
+                    }
+                    const ear = $.ui.EAR(leftP) + $.ui.EAR(rightP);
+                    const ctx = $.var.remoteCanvas.getContext('2d');
+                    ctx.clearRect(0, 0, $.var.remoteCanvas.width, $.var.remoteCanvas.height);
+                    if(ear < $.var.EYE_AR_THRESH){
+                        $.var.EYE_AR_COUNTER += 1;
+                    }
+                    else{
+                        $.var.EYE_AR_COUNTER = 0;
+                    }
+                    if($.var.EYE_AR_COUNTER > $.var.EYE_AR_CONSEC_FRAMES){
+                        ctx.font = "20px";
+                        ctx.fillStyle = "#F4606C";
+                        ctx.fillText("Distract: " + Math.round(ear *100)/100,10, 30);
+                    }
+                    else{
+                        ctx.font = "20px Verdana";
+                        ctx.fillStyle = "#8bc34a";
+                        ctx.fillText("Sober: " + Math.round(ear *100)/100,10, 30);
+                    }
+                    
+                }catch(err){
+                    console.log(err);
+                }
+                window.requestAnimationFrame($.ui.predictWebcam);
+            }
+            
+
+        }
     });
     $(function(){
         $.ui.createPeerConnection();
         $.ui.onIceCandidates();
         $.ui.onIceconnectionStateChange();
         $.ui._init();
-        $.ui.createMedia().then(function(){
+        $.ui._initModel()
+        .then($.ui.createMedia)
+        .then(function(){
             $.ui.addLocalStream();
             $.ui.onAddStream();
         }).then(function(){
             $.ui.createSignal(true);
         });
+        // $.ui._initModel();
+        
         // $.ui.joinRoom();
-    })
+        
+    });
+
 }(window, document, jQuery))

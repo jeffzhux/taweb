@@ -59,6 +59,16 @@
     -moz-transform: rotateY(180deg);
   }
   
+  canvas{
+    height: 300px;
+    border-radius: 1rem;
+    margin: 0.5rem;
+    width: 400px;
+    /* transform: rotateY(180deg);
+    -webkit-transform: rotateY(180deg);
+    -moz-transform: rotateY(180deg); */
+  }
+
   .options {
     padding: 1rem;
     display: flex;
@@ -180,8 +190,8 @@
       flex: 1;
     }
   
-    video {
-      height: auto;
+    video, canvas{
+      /* height: auto; */
       width: 100%;
     }
   
