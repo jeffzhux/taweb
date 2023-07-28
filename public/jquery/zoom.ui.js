@@ -1,5 +1,124 @@
-import vision from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0";
-const { FaceLandmarker, FilesetResolver, DrawingUtils } = vision;
+// import vision from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0";
+// import { env } from "../../models/questionAnswerModel";
+// const { FaceLandmarker, FilesetResolver, DrawingUtils } = vision;
+const MESSAGE_TYPE_OFFER = 0x01;
+const MESSAGE_TYPE_ANSWER = 0x02;
+const MESSAGE_TYPE_CANDIDATE = 0x03;
+const MESSAGE_TYPE_HANGUP = 0x04;
+
+class RTCPeerConnectionWrapper{
+    constructor(localUserId, remoteUserId, localStream, socket, masterId){
+        this.localUserId = localUserId;
+        this.remoteUserId = remoteUserId;
+        this.pc = this.create(localStream);
+        this.masterId = masterId
+        this.socket = socket;
+        this.remoteSdp = null;
+        this.remoteVideo = document.createElement("video");
+        
+    }
+    create_video_canvas(){
+        
+        this.remoteVideo = document.createElement("video");
+        this.remoteCanvas = document.createElement("canvas"); 
+        this.remoteCanvas.style.position = 'absolute';
+        this.div = document.createElement("div");
+        this.div.id = this.remoteUserId;
+        this.div.style.display="flex";
+
+    }
+    create(stream){
+        this.create_video_canvas();
+        // 建立p2p連線
+        const configuration = {
+            iceServers: [{
+                urls: 'stun:stun.l.google.com:19302' // Google's public STUN server
+            }]
+        };
+        const pc = new RTCPeerConnection(configuration);
+        
+        pc.onicecandidate = this.onIceCandidates.bind(this);
+        pc.onconnectionstatechange = (evt) => {console.log('ICE 伺服器狀態變更 => ', evt.target.iceConnectionState);}
+        pc.onaddstream = this.onRemoteStreamAdded.bind(this);
+        pc.addStream(stream);
+        console.log('create peer connection');
+        return pc
+    }
+    async createOffer(){
+        const localSDP = await this.pc['createOffer']({
+                offerToReceiveAudio: 1, //是否傳送聲音留給對方
+                offerToReceiveVideo: 1, //是否傳送影像留給對方
+        });
+        await this.pc.setLocalDescription(localSDP);
+        this.socket.emit("broadcast", {
+            'userId': this.localUserId,
+            'masterId': this.masterId,
+            'msgType': MESSAGE_TYPE_OFFER,
+            'sdp': this.pc.localDescription,
+            'targetUserId': this.remoteUserId
+        });
+    }
+    async createAnswer(){
+        const localSDP = await this.pc['createAnswer']({
+            offerToReceiveAudio: 1, //是否傳送聲音留給對方
+            offerToReceiveVideo: 1, //是否傳送影像留給對方
+        });
+        await this.pc.setLocalDescription(localSDP);
+        this.socket.emit("broadcast", {
+            'userId': this.localUserId,
+            'masterId': this.masterId,
+            'msgType': MESSAGE_TYPE_ANSWER,
+            'sdp': this.pc.localDescription,
+            'targetUserId': this.remoteUserId
+        });
+        
+    }
+    onIceCandidates(event){
+        // 監聽 ICE Server
+        // 找尋到 ICE 候選位置後，送去 Server 與另一位配對
+        if(!event || event.candidate == null) {
+            return;
+        }
+        var message = {
+            'userId': this.localUserId,
+            'masterId': this.masterId,
+            'msgType': MESSAGE_TYPE_CANDIDATE,
+            'id': event.candidate.sdpMid,
+            'label': event.candidate.sdpMLineIndex,
+            'candidate': event.candidate.candidate,
+            'targetUserId': this.remoteUserId
+        }
+        this.socket.emit('broadcast', message);
+        
+
+    }
+    onRemoteStreamAdded(event){
+        const videoGrid = document.getElementById("video-grid");
+        if(!this.remoteVideo.srcObject && event.stream){
+            this.remoteVideo.srcObject = event.stream;
+            this.remoteVideo.play();
+            
+            this.div.append(this.remoteVideo);
+            this.div.append(this.remoteCanvas);
+
+            videoGrid.append(this.div);
+            // this.remoteVideo.addEventListener("loadeddata", $.ui.predictWebcam);
+            // console.log('接收流並顯示於遠端視訊！', event);
+        }
+    }
+    async setRemoteDescription(sessionDescription){
+        if(this.remoteSdp != null || sessionDescription==null){
+            return
+        }
+        this.remoteSdp = sessionDescription;
+        await this.pc.setRemoteDescription(new RTCSessionDescription(sessionDescription));
+    }
+    addIceCandidate(candidate){
+        this.pc.addIceCandidate(candidate);
+    }
+}
+
+
 (function (window, document, $, undefined){
     
     $.extend({ui:{}, var:{}});
@@ -13,12 +132,13 @@ const { FaceLandmarker, FilesetResolver, DrawingUtils } = vision;
             //   }
         },
         socket: io('https://140.120.182.145:8080'),
+        masterId: null,
+        roomId:'20230725',
+        localUserId: null,
         localVideo: null,
         localStream: null,
-        remoteVideo: null,
-        remoteCanvas: null,
-        pc: null,
-        offer: null,
+        peerConnections: [],
+        
         faceLandmarker:null,
         leftEyeIdx:[362, 385, 387, 263, 373, 380],
         rightEyeIdx:[33, 160, 158, 133, 153, 144],
@@ -27,6 +147,7 @@ const { FaceLandmarker, FilesetResolver, DrawingUtils } = vision;
         EYE_AR_COUNTER:0,
     })
     $.extend($.ui, {
+        /*
         _api:async function(url, request){
             request['mode'] = 'cors';
             request['credentials'] = 'same-origin';
@@ -45,24 +166,92 @@ const { FaceLandmarker, FilesetResolver, DrawingUtils } = vision;
                 });
             return data;
         },
+        */
         _init: function(){
-            $.var.socket.on('joinSuccess', function(data){
-                console.log(data);
+            $.var.socket.on('connect',async function(){
+                console.log('self socket ' + $.var.socket.id);
+                $.var.localUserId = $.var.socket.id;
+                $.ui.createMedia().then(()=>{
+                    $.var.socket.emit('joinRoom', {'userId':$.var.localUserId, 'roomId':$.var.roomId});
+                });
+                
             })
-            $.var.socket.on('peerconnectSignaling', async function({ desc, candidate }){
-                // desc 指的是 Offer 與 Answer
-                // currentRemoteDescription 代表的是最近一次連線成功的相關訊息
-                if (desc && !$.var.pc.currentRemoteDescription) {
-                    console.log('desc => ', desc);
-                    
-                    await $.var.pc.setRemoteDescription(new RTCSessionDescription(desc));
-                    $.ui.createSignal(desc.type === 'answer' ? true : false);
-                } else if (candidate) {
-                    // 新增對方 IP 候選位置
-                    console.log('candidate =>', candidate);
-                    $.var.pc.addIceCandidate(new RTCIceCandidate(candidate));
+            $.var.socket.on('set-master', async function(masterId){
+                if($.var.masterId == null){
+                    //設定房主
+                    $.var.masterId = masterId;
                 }
             })
+            $.var.socket.on('user-joined',async function(remoteUserId){
+                
+                if ($.var.localUserId == remoteUserId) {
+                    return;
+                }
+                console.log('socket 用戶加入 ' + remoteUserId);
+                if ($.var.peerConnections[remoteUserId] == null) {
+                    $.var.peerConnections[remoteUserId] = await new RTCPeerConnectionWrapper($.var.localUserId, remoteUserId, $.var.localStream, $.var.socket, $.var.masterId);
+                }
+                await $.var.peerConnections[remoteUserId].createOffer();
+            })
+            $.var.socket.on('broadcast', async function(msg){
+                if (msg.userId == $.var.userId){
+                    return;
+                }
+                // if message is not send to me. ignore it
+                if (msg.targetUserId && msg.targetUserId != $.var.localUserId) {
+                    return;
+                }
+                switch(msg.msgType){
+                    case MESSAGE_TYPE_OFFER:
+                        await $.ui.handleRemoteOffer(msg);
+                        break;
+                    case MESSAGE_TYPE_ANSWER:
+                        await $.ui.handleRemoteAnswer(msg);
+                        break;
+                    case MESSAGE_TYPE_CANDIDATE:
+                        await $.ui.handleRemoteCandidate(msg);
+                        break;
+                }
+            })
+            $.var.socket.on('user-leaved', function(remoteUserId){
+                console.log('socket 用戶離開 ' + remoteUserId);
+                if($.var.masterId == remoteUserId){
+                    window.location.replace("https://140.120.182.145:8080/problem_editor");
+                }
+                document.getElementById(remoteUserId).remove();
+                if ($.var.localUserId == remoteUserId) {
+                    return;
+                }
+                delete $.var.peerConnections[remoteUserId];
+            })
+        },
+        handleRemoteOffer: async function(msg){
+            console.log('Remote offer received: ', msg.userId);
+
+            $.var.peerConnections[msg.userId] = await new RTCPeerConnectionWrapper($.var.localUserId, msg.userId, $.var.localStream, $.var.socket, $.var.masterId);
+            await $.var.peerConnections[msg.userId].setRemoteDescription(msg.sdp);
+            await $.var.peerConnections[msg.userId].createAnswer();
+
+        },
+        handleRemoteAnswer: async function(msg){
+            console.log('Remote answer received: ', msg.userId);
+            if ($.var.peerConnections[msg.userId] == null) {
+                console.log('Invlid state, can not find the offerer ', msg.userId);
+                return;
+            }
+            await $.var.peerConnections[msg.userId].setRemoteDescription(msg.sdp);
+        },
+        handleRemoteCandidate: async function(msg){
+            console.log('Remote candidate received: ', msg.userId);
+            if ($.var.peerConnections[msg.userId] == null) {
+                console.log('Invlid state, can not find the offerer ', msg.userId);
+                return;
+            }
+            var candidate = new RTCIceCandidate({
+                sdpMLineIndex: msg.label,
+                candidate: msg.candidate
+            });
+            $.var.peerConnections[msg.userId].addIceCandidate(candidate);
         },
         createMedia:async function(){
             const videoGrid = document.getElementById("video-grid");
@@ -74,123 +263,27 @@ const { FaceLandmarker, FilesetResolver, DrawingUtils } = vision;
             $.var.localVideo.addEventListener("loadedmetadata", () => {
                 $.var.localVideo.play();
                 const div = document.createElement("div");
+                div.id = $.var.localUserId;
+                div.style.display="flex";
                 div.append($.var.localVideo);
                 videoGrid.append(div);
             });
             console.log($.var.localStream.getVideoTracks()[0].label);
             console.log($.var.localStream.getAudioTracks()[0].label);
         },
-        createPeerConnection:async function(){
-            // 建立p2p連線
-            const configuration = {
-                iceServers: [{
-                    urls: 'stun:stun.l.google.com:19302' // Google's public STUN server
-                }]
-            };
-            $.var.pc = new RTCPeerConnection(configuration);
-            console.log('create peer connection');
-        },
-        addLocalStream: function(){
-            $.var.pc.addStream($.var.localStream);
-        },
-
-        onIceCandidates: function() {
-            // 監聽 ICE Server
-            // 找尋到 ICE 候選位置後，送去 Server 與另一位配對
-            $.var.pc.onicecandidate = ({ candidate }) => {
-                if (!candidate) { return; }
-                $.var.socket.emit("peerconnectSignaling", { 
-                    candidate,
-                    to: 'jedy-0',
-                    from: 'hiro-1',
-                    room: '0509'
-                 });
-            };
-        },
-
-        onIceconnectionStateChange: function() {
-            // 監聽 ICE 連接狀態
-            $.var.pc.oniceconnectionstatechange = (evt) => {
-                console.log('ICE 伺服器狀態變更 => ', evt.target.iceConnectionState);
-            };
-        },
-
-        onAddStream:async function() {
-            // 監聽是否有流傳入，如果有的話就顯示影像            
-            $.var.pc.onaddstream = (event) => {
-                const videoGrid = document.getElementById("video-grid");
-                const div = document.createElement("div");
-                div.style.display="flex";
-                $.var.remoteCanvas = document.createElement("canvas");
-                $.var.remoteCanvas.style.position = 'absolute';
-                $.var.remoteVideo = document.createElement("video");
-                if(!$.var.remoteVideo.srcObject && event.stream){
-                    $.var.remoteVideo.srcObject = event.stream;
-                    $.var.remoteVideo.play();
-                    
-                    div.append($.var.remoteVideo);
-                    div.append($.var.remoteCanvas);
-
-                    videoGrid.append(div);
-                    $.var.remoteVideo.addEventListener("loadeddata", $.ui.predictWebcam);
-                    console.log('接收流並顯示於遠端視訊！', event);
-                    
-                }
+        checkRoom:function(){
+            var url_params = new URLSearchParams(window.location.search);
+            console.log(url_params);
+            console.log(url_params.has('id'));
+            console.log(url_params.get('id'));
+            if (url_params.has('id')){
+                $.var.roomId = url_params.get('id');
+                return true;
             }
-        },
-        // ---------------------
-        sendSignalingMessage: function(desc, offer) {
-
-            const isOffer = offer ? "offer" : "answer";
-            console.log(`寄出 ${isOffer}`);
-            $.var.socket.emit("peerconnectSignaling", {
-              desc: desc,
-              to: 'jedy-0',
-              from: 'hiro-1',
-              room: '0509'
-            });
-        },
-        createSignal: async function(isOffer) {
-            try {
-                if (!$.var.pc) {
-                    console.log('尚未開啟視訊')
-                    return;
-                }
-                
-                //乎叫 peerConnect 內的 createOffer / createAnswer
-                $.var.offer = await $.var.pc[`create${isOffer ? 'Offer' : 'Answer'}`]({
-                    offerToReceiveAudio: 1, //是否傳送聲音留給對方
-                    offerToReceiveVideo: 1, //是否傳送影像留給對方
-                });
-                
-                // 設定本地流配置
-                await $.var.pc.setLocalDescription($.var.offer);
-                $.ui.sendSignalingMessage($.var.pc.localDescription, isOffer ? true : false)
-            } catch(err) {
-                console.log(err);
+            else{
+                window.location.replace("https://140.120.182.145:8080/problem_editor");
             }
-        },
-        onSocket: function(){
-            // desc 指的是 Offer 與 Answer
-            // currentRemoteDescription 代表的是最近一次連線成功的相關訊息
-            $.var.socket.on('peerconnectSignaling', async ({desc, from, candidate}) =>{
-                if (desc && !$.var.pc.currentRemoteDescription) {
-                    console.log('desc => ', desc);
-                    await $.var.pc.setRemoteDescription(new RTCSessionDescription(desc));
-                    await $.ui.createSignal(desc.type === 'answer' ? true : false);
-                } else if (candidate) {
-                    // 新增對方 IP 候選位置
-                    console.log('candidate =>', candidate);
-                    $.var.pc.addIceCandidate(new RTCIceCandidate(candidate));
-                }
-            });
-            $.var.socket.on('roomBroadcast', message => {
-                console.log('房間廣播 => ', message);
-            });
-        },
-        joinRoom: function() {
-            console.log("joinRoom");
-            $.var.socket.emit('joinRoom' , 'secret room');
+            
         },
         _initModel: async function(){
             const filesetResolver = await FilesetResolver.forVisionTasks(
@@ -250,22 +343,13 @@ const { FaceLandmarker, FilesetResolver, DrawingUtils } = vision;
         }
     });
     $(function(){
-        $.ui.createPeerConnection();
-        $.ui.onIceCandidates();
-        $.ui.onIceconnectionStateChange();
-        $.ui._init();
-        $.ui._initModel()
-        .then($.ui.createMedia)
-        .then(function(){
-            $.ui.addLocalStream();
-            $.ui.onAddStream();
-        }).then(function(){
-            $.ui.createSignal(true);
-        });
-        // $.ui._initModel();
-        
-        // $.ui.joinRoom();
-        
+        const isRoomExist = $.ui.checkRoom();
+        if(isRoomExist){
+            $.ui._init();
+        }
+        else{
+            
+        }
     });
 
 }(window, document, jQuery))
