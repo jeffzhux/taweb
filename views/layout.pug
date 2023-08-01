@@ -10,6 +10,7 @@ html
     link(rel='stylesheet', href='/stylesheets/layout.css')
     link(rel='stylesheet', href='/stylesheets/helpers.css')
     link(rel='stylesheet', href='/stylesheets/fontawesome6.4.0/css/fontawesome.css')
+    link(rel='stylesheet', href='/stylesheets/fontawesome6.4.0/css/brands.css')
     link(rel='stylesheet', href='/stylesheets/fontawesome6.4.0/css/solid.css')
     block head
   body.bg-4
@@ -52,17 +53,22 @@ html
                 a.nav-link.mean-link.active(href="../corrections_page") Corrections
               else
                 a.nav-link.mean-link(href="../corrections_page") Corrections
-
             li 
               if title == "Room"
-                a.nav-link.mean-link.active(href="../room") Room 
+                a.nav-link.mean-link.active(href="../room?id=20230801") Room 
               else 
-                a.nav-link.mean-link(href="../room") Room
+                a.nav-link.mean-link(href="../room?id=20230801") Room
               
           div.col-12.col-lg-auto.mb-3.mb-lg-0.me-lg-3
             | #{title}
     main(role="main")
       block content
 
-    footer.footer.bg-2.py-xl-5
-      div.container.pt-5.pb-2
+    footer.footer.bg-6.text-1
+      div.d-flex.flex-wrap.justify-content-between.align-items-center.py-3.my-4.border-top
+        div.container.d-flex.justify-content-between
+          span.mb-3.mb-md-0 Copyright @ 2023 | Chu-Hsiang Lee
+          ul.nav.col-md-4.justify-content-end.list-unstyled.d-flex
+            li.ms-3
+              a.text-4(href='https://github.com/jeffzhux')
+                i.fa-brands.fa-github.fa-2xl(aria-hidden="true")
