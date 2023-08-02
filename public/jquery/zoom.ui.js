@@ -1,21 +1,24 @@
-// import vision from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0";
-// import { env } from "../../models/questionAnswerModel";
-// const { FaceLandmarker, FilesetResolver, DrawingUtils } = vision;
+import vision from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0";
+const { FaceLandmarker, FilesetResolver, DrawingUtils } = vision;
 const MESSAGE_TYPE_OFFER = 0x01;
 const MESSAGE_TYPE_ANSWER = 0x02;
 const MESSAGE_TYPE_CANDIDATE = 0x03;
 const MESSAGE_TYPE_HANGUP = 0x04;
-
+const LEFT_EYE_IDX = [362, 385, 387, 263, 373, 380];
+const RIGHT_EYE_IDX = [33, 160, 158, 133, 153, 144];
+const EYE_AR_THRESH = 0.35;
+const EYE_AR_CONSEC_FRAMES = 48;
 class RTCPeerConnectionWrapper{
-    constructor(localUserId, remoteUserId, localStream, socket, masterId){
+    constructor(localUserId, remoteUserId, localStream, socket, masterId, faceLandmarker){
         this.localUserId = localUserId;
         this.remoteUserId = remoteUserId;
         this.pc = this.create(localStream);
         this.masterId = masterId
         this.socket = socket;
         this.remoteSdp = null;
-        this.remoteVideo = document.createElement("video");
         
+        this.faceLandmarker = faceLandmarker;
+        this.eye_ar_counter = 0;
     }
     create_video_canvas(){
         
@@ -25,6 +28,7 @@ class RTCPeerConnectionWrapper{
         this.div = document.createElement("div");
         this.div.id = this.remoteUserId;
         this.div.style.display="flex";
+        
 
     }
     create(stream){
@@ -98,12 +102,15 @@ class RTCPeerConnectionWrapper{
             this.remoteVideo.srcObject = event.stream;
             this.remoteVideo.play();
             
+            
             this.div.append(this.remoteVideo);
             this.div.append(this.remoteCanvas);
 
             videoGrid.append(this.div);
-            // this.remoteVideo.addEventListener("loadeddata", $.ui.predictWebcam);
             // console.log('接收流並顯示於遠端視訊！', event);
+            if(this.faceLandmarker != null){
+                this.remoteVideo.addEventListener("loadeddata", this.predictWebcam.bind(this));
+            }
         }
     }
     async setRemoteDescription(sessionDescription){
@@ -115,6 +122,46 @@ class RTCPeerConnectionWrapper{
     }
     addIceCandidate(candidate){
         this.pc.addIceCandidate(candidate);
+    }
+    EAR(point){
+        const euclideanDistance = (a, b) => Math.hypot(...Object.keys(a).map(k => b[k]-a[k]));
+        return (euclideanDistance(point[1], point[5]) + euclideanDistance(point[2], point[4])) / (2*euclideanDistance(point[0], point[3]));
+    }
+    async predictWebcam(){
+        if(this.remoteVideo){
+            const results = this.faceLandmarker.detectForVideo(this.remoteVideo, Date.now());
+            const leftP = []
+            const rightP = []
+            try{
+                for(let i = 0; i < LEFT_EYE_IDX.length; i++){
+                    leftP.push(results.faceLandmarks[0][LEFT_EYE_IDX[i]]);
+                    rightP.push(results.faceLandmarks[0][RIGHT_EYE_IDX[i]]);
+                }
+                const ear = this.EAR(leftP) + this.EAR(rightP);
+                const ctx = this.remoteCanvas.getContext('2d');
+                ctx.clearRect(0, 0, this.remoteCanvas.width, this.remoteCanvas.height);
+                if(ear < EYE_AR_THRESH){
+                    this.eye_ar_counter += 1;
+                }
+                else{
+                    this.eye_ar_counter = 0;
+                }
+                if(this.eye_ar_counter > EYE_AR_CONSEC_FRAMES){
+                    ctx.font = "20px";
+                    ctx.fillStyle = "#F4606C";
+                    ctx.fillText("Distract: " + Math.round(ear *100)/100,10, 30);
+                }
+                else{
+                    ctx.font = "20px Verdana";
+                    ctx.fillStyle = "#8bc34a";
+                    ctx.fillText("Sober: " + Math.round(ear *100)/100,10, 30);
+                }
+                
+            }catch(err){
+                console.log(err);
+            }
+            window.requestAnimationFrame(this.predictWebcam.bind(this));
+        }
     }
 }
 
@@ -139,12 +186,7 @@ class RTCPeerConnectionWrapper{
         localStream: null,
         peerConnections: [],
         
-        faceLandmarker:null,
-        leftEyeIdx:[362, 385, 387, 263, 373, 380],
-        rightEyeIdx:[33, 160, 158, 133, 153, 144],
-        EYE_AR_THRESH: 0.35,
-        EYE_AR_CONSEC_FRAMES: 48,
-        EYE_AR_COUNTER:0,
+        faceLandmarker: null
     })
     $.extend($.ui, {
         /*
@@ -171,6 +213,7 @@ class RTCPeerConnectionWrapper{
             $.var.socket.on('connect',async function(){
                 console.log('self socket ' + $.var.socket.id);
                 $.var.localUserId = $.var.socket.id;
+                
                 $.ui.createMedia().then(()=>{
                     $.var.socket.emit('joinRoom', {'userId':$.var.localUserId, 'roomId':$.var.roomId});
                 });
@@ -189,7 +232,7 @@ class RTCPeerConnectionWrapper{
                 }
                 console.log('socket 用戶加入 ' + remoteUserId);
                 if ($.var.peerConnections[remoteUserId] == null) {
-                    $.var.peerConnections[remoteUserId] = await new RTCPeerConnectionWrapper($.var.localUserId, remoteUserId, $.var.localStream, $.var.socket, $.var.masterId);
+                    $.var.peerConnections[remoteUserId] = await new RTCPeerConnectionWrapper($.var.localUserId, remoteUserId, $.var.localStream, $.var.socket, $.var.masterId, $.var.faceLandmarker);
                 }
                 await $.var.peerConnections[remoteUserId].createOffer();
             })
@@ -228,7 +271,7 @@ class RTCPeerConnectionWrapper{
         handleRemoteOffer: async function(msg){
             console.log('Remote offer received: ', msg.userId);
 
-            $.var.peerConnections[msg.userId] = await new RTCPeerConnectionWrapper($.var.localUserId, msg.userId, $.var.localStream, $.var.socket, $.var.masterId);
+            $.var.peerConnections[msg.userId] = await new RTCPeerConnectionWrapper($.var.localUserId, msg.userId, $.var.localStream, $.var.socket, $.var.masterId, $.var.faceLandmarker);
             await $.var.peerConnections[msg.userId].setRemoteDescription(msg.sdp);
             await $.var.peerConnections[msg.userId].createAnswer();
 
@@ -286,13 +329,11 @@ class RTCPeerConnectionWrapper{
             
         },
         _initModel: async function(){
-            const filesetResolver = await FilesetResolver.forVisionTasks(
-                "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0/wasm"
-            );
+            const filesetResolver = await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0/wasm");
             $.var.faceLandmarker = await FaceLandmarker.createFromOptions(filesetResolver, {
                 baseOptions: {
-                  modelAssetPath: `https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task`,
-                  delegate: "CPU"
+                    modelAssetPath: `https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task`,
+                    delegate: "CPU"
                 },
                 outputFaceBlendshapes: true,
                 runningMode:"VIDEO",
@@ -338,17 +379,15 @@ class RTCPeerConnectionWrapper{
                 }
                 window.requestAnimationFrame($.ui.predictWebcam);
             }
-            
-
         }
+
     });
     $(function(){
         const isRoomExist = $.ui.checkRoom();
         if(isRoomExist){
+            // $.ui._initModel().then($.ui._init);
+            $.ui._initModel();
             $.ui._init();
-        }
-        else{
-            
         }
     });
 
