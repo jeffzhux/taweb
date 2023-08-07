@@ -19,17 +19,18 @@ class RTCPeerConnectionWrapper{
         
         this.faceLandmarker = faceLandmarker;
         this.eye_ar_counter = 0;
+        
     }
     create_video_canvas(){
         
         this.remoteVideo = document.createElement("video");
-        this.remoteCanvas = document.createElement("canvas"); 
+        this.remoteCanvas = document.createElement("canvas");
         this.remoteCanvas.style.position = 'absolute';
         this.div = document.createElement("div");
         this.div.id = this.remoteUserId;
         this.div.style.display="flex";
-        
 
+        this.drawingUtils = new DrawingUtils(this.remoteCanvas.getContext("2d"));
     }
     create(stream){
         this.create_video_canvas();
@@ -108,7 +109,7 @@ class RTCPeerConnectionWrapper{
 
             videoGrid.append(this.div);
             // console.log('接收流並顯示於遠端視訊！', event);
-            if(this.faceLandmarker != null){
+            if(this.faceLandmarker != null && this.localUserId == this.masterId){
                 this.remoteVideo.addEventListener("loadeddata", this.predictWebcam.bind(this));
             }
         }
@@ -124,39 +125,70 @@ class RTCPeerConnectionWrapper{
         this.pc.addIceCandidate(candidate);
     }
     EAR(point){
-        const euclideanDistance = (a, b) => Math.hypot(...Object.keys(a).map(k => b[k]-a[k]));
-        return (euclideanDistance(point[1], point[5]) + euclideanDistance(point[2], point[4])) / (2*euclideanDistance(point[0], point[3]));
+        if(point.length == 6){
+            const euclideanDistance = (a, b) => Math.hypot(...Object.keys(a).map(k => b[k]-a[k]));
+            return (euclideanDistance(point[1], point[5]) + euclideanDistance(point[2], point[4])) / (2*euclideanDistance(point[0], point[3]));
+        }
+        else{
+            return 0;
+        }
     }
     async predictWebcam(){
         if(this.remoteVideo){
             const results = this.faceLandmarker.detectForVideo(this.remoteVideo, Date.now());
             const leftP = []
             const rightP = []
+            //if(results.faceLandmarks)
+            console.log(results)
             try{
                 for(let i = 0; i < LEFT_EYE_IDX.length; i++){
+                    //有偵測到左眼
                     leftP.push(results.faceLandmarks[0][LEFT_EYE_IDX[i]]);
+                    //有偵測到右眼
                     rightP.push(results.faceLandmarks[0][RIGHT_EYE_IDX[i]]);
                 }
                 const ear = this.EAR(leftP) + this.EAR(rightP);
-                const ctx = this.remoteCanvas.getContext('2d');
-                ctx.clearRect(0, 0, this.remoteCanvas.width, this.remoteCanvas.height);
+                
                 if(ear < EYE_AR_THRESH){
                     this.eye_ar_counter += 1;
                 }
                 else{
                     this.eye_ar_counter = 0;
                 }
+                const ctx = this.remoteCanvas.getContext('2d');
+                ctx.clearRect(0, 0, this.remoteCanvas.width, this.remoteCanvas.height);
+                for(const landmarks of results.faceLandmarks){
+                    this.drawingUtils.drawConnectors(
+                        landmarks,
+                        FaceLandmarker.FACE_LANDMARKS_RIGHT_EYE,
+                        { color: "#FF3030" , lineWidth: 0.7 }
+                    );
+                    this.drawingUtils.drawConnectors(
+                        landmarks,
+                        FaceLandmarker.FACE_LANDMARKS_LEFT_EYE,
+                        { color: "#30FF30" , lineWidth: 0.7 }
+                    );
+                    this.drawingUtils.drawConnectors(
+                        landmarks,
+                        FaceLandmarker.FACE_LANDMARKS_RIGHT_IRIS,
+                        { color: "#FF3030" , lineWidth: 0.7 }
+                    );
+                    this.drawingUtils.drawConnectors(
+                        landmarks,
+                        FaceLandmarker.FACE_LANDMARKS_LEFT_IRIS,
+                        { color: "#30FF30" , lineWidth: 0.7 }
+                    );
+                }
                 if(this.eye_ar_counter > EYE_AR_CONSEC_FRAMES){
-                    ctx.font = "20px";
-                    ctx.fillStyle = "#F4606C";
-                    ctx.fillText("Distract: " + Math.round(ear *100)/100,10, 30);
+                    ctx.font = "20px Arial";
+                    ctx.fillStyle = "#FF2400";
+                    ctx.fillText("Distract: " + Math.round(ear *100)/100,10, 20);
                 }
                 else{
-                    ctx.font = "20px Verdana";
-                    ctx.fillStyle = "#8bc34a";
-                    ctx.fillText("Sober: " + Math.round(ear *100)/100,10, 30);
+                    ctx.font = "20px Arial";
+                    ctx.fillStyle = "#006400";
+                    ctx.fillText("Sober: " + Math.round(ear *100)/100,10, 20);
                 }
-                
             }catch(err){
                 console.log(err);
             }
@@ -340,47 +372,6 @@ class RTCPeerConnectionWrapper{
                 numFaces: 1
             });
         },
-        EAR: function(p){
-            const euclideanDistance = (a, b) => Math.hypot(...Object.keys(a).map(k => b[k]-a[k]));
-            return (euclideanDistance(p[1], p[5]) + euclideanDistance(p[2], p[4])) / (2*euclideanDistance(p[0], p[3]));
-        },
-        predictWebcam: async function(){
-            if($.var.remoteVideo){
-                const results = $.var.faceLandmarker.detectForVideo($.var.remoteVideo, Date.now());
-                const leftP = []
-                const rightP = []
-                try{
-                    for(let i = 0; i < $.var.leftEyeIdx.length; i++){
-                        leftP.push(results.faceLandmarks[0][$.var.leftEyeIdx[i]]);
-                        rightP.push(results.faceLandmarks[0][$.var.rightEyeIdx[i]]);
-                    }
-                    const ear = $.ui.EAR(leftP) + $.ui.EAR(rightP);
-                    const ctx = $.var.remoteCanvas.getContext('2d');
-                    ctx.clearRect(0, 0, $.var.remoteCanvas.width, $.var.remoteCanvas.height);
-                    if(ear < $.var.EYE_AR_THRESH){
-                        $.var.EYE_AR_COUNTER += 1;
-                    }
-                    else{
-                        $.var.EYE_AR_COUNTER = 0;
-                    }
-                    if($.var.EYE_AR_COUNTER > $.var.EYE_AR_CONSEC_FRAMES){
-                        ctx.font = "20px";
-                        ctx.fillStyle = "#F4606C";
-                        ctx.fillText("Distract: " + Math.round(ear *100)/100,10, 30);
-                    }
-                    else{
-                        ctx.font = "20px Verdana";
-                        ctx.fillStyle = "#8bc34a";
-                        ctx.fillText("Sober: " + Math.round(ear *100)/100,10, 30);
-                    }
-                    
-                }catch(err){
-                    console.log(err);
-                }
-                window.requestAnimationFrame($.ui.predictWebcam);
-            }
-        }
-
     });
     $(function(){
         const isRoomExist = $.ui.checkRoom();

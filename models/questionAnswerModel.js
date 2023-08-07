@@ -22,16 +22,16 @@ module.exports = class QuestionAnswerModel {
       const {pipeline, env} = await import('@xenova/transformers');
       env.cacheDir = 'F:\\NLP\\taweb\\public\\.cache';
       this.env = env;
-      this.q_pipe = await pipeline('text2text-generation', 'open_question_generation_model');
-      // this.d_pipe = await pipeline('text2text-generation', 'flan-t5_question_generator');
+      // this.q_pipe = await pipeline('text2text-generation', 'open_question_generation_model');
+      this.q_pipe = await pipeline('text2text-generation', 't5-large-question-generator');
     }
     
   }
   static async open_question_generation(content) {
-    // const q_prom = this.question_prompts[Math.floor(Math.random()*this.question_prompts.length)];
+    const q_prom = this.question_prompts[Math.floor(Math.random()*this.question_prompts.length)];
     console.log('------------')
-    // const q_input = `${q_prom}\n${content}`;
-    // console.log(q_input);
+    const q_input = `${q_prom}\n${content}`;
+    console.log(q_input);
     await this._init();
     
     let question_answer = await this.q_pipe(content);

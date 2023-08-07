@@ -39,8 +39,10 @@ html
     //-         span Hi~
     //-         a(class="btn btn-link")
     header.p-3.bg-5
-      div.container
+      div.container-fluid
         div.d-flex.align-items-center.justify-content-center.justify-content-lg-start
+          a.navbar-brand(href="#")
+            img(style="width:50px", src="../images/logo.svg")
 
           ul.nav.col-12.col-lg-auto.me-lg-auto.mb-2.justify-content-center.mb-md-0
             li
@@ -59,14 +61,26 @@ html
               else 
                 a.nav-link.mean-link(href="../room?id=20230801") Room
               
-          div.col-12.col-lg-auto.mb-3.mb-lg-0.me-lg-3
-            | #{title}
+          div.col-12.col-lg-auto.mb-3.mb-lg-0.me-lg-3.text-1
+            ul.nav.col-12.col-lg-auto.me-lg-auto.mb-2.justify-content-center.mb-md-0
+              li 
+                if title == "About"
+                  a.nav-link.mean-link.active(href="../about") About
+                else
+                  a.nav-link.mean-link(href="../about") About
+              li
+                a.nav-link.mean-link(href="#")
+                  i.fa.fa-user(aria-hidden="true")
+                  | &thinsp;
+                  
+
+            
     main(role="main")
       block content
 
     footer.footer.bg-6.text-1
       div.d-flex.flex-wrap.justify-content-between.align-items-center.py-3.my-4.border-top
-        div.container.d-flex.justify-content-between
+        div.container-fluid.d-flex.justify-content-between
           span.mb-3.mb-md-0 Copyright @ 2023 | Chu-Hsiang Lee
           ul.nav.col-md-4.justify-content-end.list-unstyled.d-flex
             li.ms-3
